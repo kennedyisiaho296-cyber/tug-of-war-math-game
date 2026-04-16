@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tug of War: Mathematics</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+
+<style>
+body { margin:0; font-family:'Nunito'; }
+.game { display:flex; height:100vh; }
+
+/* PANELS */
+.panel { width:25%; padding:16px; display:flex; flex-direction:column; justify-content:space-between; }
+.left { background:#DBEAFE; }
+.right { background:#FEE2E2; }
+
+.header { font-family:'Fredoka One'; color:white; padding:10px; border-radius:10px; text-align:center; }
+.blue { background:#2563EB; }
+.red { background:#DC2626; }
+
+/* CENTER */
+.center { flex:1; position:relative; background:#f3f4f6; }
+
+/* SCORE */
+.scoreboard {
+  position:absolute; top:10px; left:50%;
+  transform:translateX(-50%);
+  display:flex; gap:20px;
+}
+.score { background:#e5e7eb; padding:10px; border-radius:10px; }
+
+/* SOUND UI */
+.sound-ui {
+  position:absolute;
+  top:60px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:10px;
+  background:white;
+  padding:8px 12px;
+  border-radius:12px;
+}
+
+/* ROPE */
+.rope-container {
+  position:absolute; top:55%; left:50%;
+  transform:translateX(-50%);
+  width:50%;
+  transition:transform 0.4s ease;
+}
+.rope {
+  width:100%; height:6px;
+  background:repeating-linear-gradient(90deg,#8B6914,#C4992A 6px,#8B6914 12px);
+}
+.flag {
+  position:absolute; left:50%; top:-10px;
+  transform:translateX(-50%);
+  width:12px; height:16px; background:gold;
+}
+
+/* CENTER LINE */
+.center-line {
+  position:absolute; top:20%; bottom:20%;
+  left:50%; border-left:2px dashed #999;
+}
+
+/* TEAMS */
+.team { position:absolute; top:48%; display:flex; gap:10px; }
+.teamA { left:18%; }
+.teamB { right:18%; }
+
+/* ANIMATION */
+@keyframes tugLeft {
+  0% { transform:translateX(0px) rotate(-2deg); }
+  100% { transform:translateX(-3px) rotate(-5deg); }
+}
+@keyframes tugRight {
+  0% { transform:translateX(0px) rotate(2deg); }
+  100% { transform:translateX(3px) rotate(5deg); }
+}
+.teamA svg { animation:tugLeft 0.4s infinite alternate; }
+.teamB svg { animation:tugRight 0.4s infinite alternate; }
+
+.pull-left { transform:translateX(-40px); transition:0.3s; }
+.pull-right { transform:translateX(40px); transition:0.3s; }
+
+/* INPUT */
+.answer {
+  height:50px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; margin:10px 0;
+}
+.left .answer { border:3px solid #2563EB; background:#EFF6FF; }
+.right .answer { border:3px solid #DC2626; background:#FEF2F2; }
+
+.kb { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.kb button { padding:12px; border-radius:8px; }
+.left button { background:#BFDBFE; }
+.right button { background:#FECACA; }
+
+.question { font-size:28px; text-align:center; font-family:'Fredoka One'; }
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+<!-- LEFT -->
+<div class="panel left">
+  <div>
+    <div class="header blue">Team 1</div>
+    <div class="question" id="questionA">5 × 3 = ?</div>
+    <div class="answer" id="answerA"></div>
+  </div>
+
+  <div class="kb">
+    <button onclick="typeDigit('A','1')">1</button>
+    <button onclick="typeDigit('A','2')">2</button>
+    <button onclick="typeDigit('A','3')">3</button>
+    <button onclick="typeDigit('A','4')">4</button>
+    <button onclick="typeDigit('A','5')">5</button>
+    <button onclick="typeDigit('A','6')">6</button>
+    <button onclick="typeDigit('A','7')">7</button>
+    <button onclick="typeDigit('A','8')">8</button>
+    <button onclick="typeDigit('A','9')">9</button>
+    <button onclick="delDigit('A')">⌫</button>
+    <button onclick="typeDigit('A','0')">0</button>
+    <button onclick="submitAnswer('A')">✔</button>
+  </div>
+</div>
+
+<!-- CENTER -->
+<div class="center">
+
+<div class="scoreboard">
+  <div class="score">Team 1: <span id="scoreA">0</span></div>
+  <div class="score">Team 2: <span id="scoreB">0</span></div>
+</div>
+
+<!-- SOUND UI -->
+<div class="sound-ui">
+  <button id="soundToggle" onclick="toggleSound()">🔊 ON</button>
+  <input type="range" min="0" max="1" step="0.01" value="0.5" onchange="setVolume(this.value)">
+</div>
+
+<div class="center-line"></div>
+
+<div id="ropeContainer" class="rope-container">
+  <div class="rope"></div>
+  <div class="flag"></div>
+</div>
+
+<!-- TEAM A -->
+<div id="teamA" class="team teamA">
+  <svg width="80" height="100"><circle cx="40" cy="20" r="12" fill="#FDBF60"/><rect x="28" y="32" width="24" height="28" fill="#2563EB"/><line x1="30" y1="40" x2="70" y2="45" stroke="#2563EB" stroke-width="6"/></svg>
+  <svg width="80" height="100"><circle cx="40" cy="20" r="12" fill="#FDBF60"/><rect x="28" y="32" width="24" height="28" fill="#60A5FA"/><line x1="30" y1="40" x2="70" y2="45" stroke="#60A5FA" stroke-width="6"/></svg>
+</div>
+
+<!-- TEAM B -->
+<div id="teamB" class="team teamB">
+  <svg width="80" height="100"><circle cx="40" cy="20" r="12" fill="#FDBF60"/><rect x="28" y="32" width="24" height="28" fill="#DC2626"/><line x1="10" y1="45" x2="50" y2="40" stroke="#DC2626" stroke-width="6"/></svg>
+  <svg width="80" height="100"><circle cx="40" cy="20" r="12" fill="#FDBF60"/><rect x="28" y="32" width="24" height="28" fill="#F87171"/><line x1="10" y1="45" x2="50" y2="40" stroke="#F87171" stroke-width="6"/></svg>
+</div>
+
+</div>
+
+<!-- RIGHT -->
+<div class="panel right">
+  <div>
+    <div class="header red">Team 2</div>
+    <div class="question" id="questionB">6 × 2 = ?</div>
+    <div class="answer" id="answerB"></div>
+  </div>
+
+  <div class="kb">
+    <button onclick="typeDigit('B','1')">1</button>
+    <button onclick="typeDigit('B','2')">2</button>
+    <button onclick="typeDigit('B','3')">3</button>
+    <button onclick="typeDigit('B','4')">4</button>
+    <button onclick="typeDigit('B','5')">5</button>
+    <button onclick="typeDigit('B','6')">6</button>
+    <button onclick="typeDigit('B','7')">7</button>
+    <button onclick="typeDigit('B','8')">8</button>
+    <button onclick="typeDigit('B','9')">9</button>
+    <button onclick="delDigit('B')">⌫</button>
+    <button onclick="typeDigit('B','0')">0</button>
+    <button onclick="submitAnswer('B')">✔</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+let audioCtx, masterGain, soundEnabled=true, masterVolume=0.5;
+let crowdNoise, crowdGain, crowdFilter, tensionInterval;
+
+function initAudio(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+}
+function initMasterGain(){
+  if(!masterGain){
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = masterVolume;
+    masterGain.connect(audioCtx.destination);
+  }
+}
+function playTone(freq,duration,type='sine',vol=0.2){
+  initAudio(); initMasterGain();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type=type; osc.frequency.value=freq;
+  gain.gain.value=vol;
+  osc.connect(gain); gain.connect(masterGain);
+  osc.start(); osc.stop(audioCtx.currentTime+duration);
+}
+
+/* CROWD */
+function startCrowd(){
+  const buffer = audioCtx.createBuffer(1, 2*audioCtx.sampleRate, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i]=Math.random()*2-1;
+
+  crowdNoise = audioCtx.createBufferSource();
+  crowdNoise.buffer = buffer;
+  crowdNoise.loop = true;
+
+  crowdFilter = audioCtx.createBiquadFilter();
+  crowdFilter.type="bandpass";
+
+  crowdGain = audioCtx.createGain();
+  crowdGain.gain.value=0.02;
+
+  crowdNoise.connect(crowdFilter);
+  crowdFilter.connect(crowdGain);
+  crowdGain.connect(masterGain);
+
+  crowdNoise.start();
+}
+
+function updateCrowd(){
+  const intensity=Math.abs(pull)/maxPull;
+  crowdGain.gain.value=0.02+intensity*0.15;
+  crowdFilter.frequency.value=500+intensity*400;
+}
+
+/* TENSION */
+function startTensionSound(){
+  tensionInterval=setInterval(()=>playTone(120+Math.random()*30,0.1,'square',0.05),120);
+}
+function stopTensionSound(){ clearInterval(tensionInterval); }
+
+/* SOUND UI */
+function toggleSound(){
+  soundEnabled=!soundEnabled;
+  masterGain.gain.value=soundEnabled?masterVolume:0;
+  document.getElementById('soundToggle').textContent=soundEnabled?'🔊 ON':'🔇 OFF';
+}
+function setVolume(v){
+  masterVolume=v;
+  if(soundEnabled) masterGain.gain.value=v;
+}
+
+/* GAME */
+let state={scoreA:0,scoreB:0,inputA:'',inputB:'',answerA:15,answerB:12};
+let pull=0,maxPull=5;
+
+function updateVisual(){
+  const p=(pull/maxPull)*30;
+  ropeContainer.style.transform=`translateX(calc(-50% + ${p}%))`;
+  teamA.style.transform=`translateX(${p*-5}px)`;
+  teamB.style.transform=`translateX(${p*-5}px)`;
+  updateCrowd();
+}
+
+function typeDigit(t,d){
+  state['input'+t]+=d;
+  document.getElementById('answer'+t).textContent=state['input'+t];
+}
+function delDigit(t){
+  state['input'+t]=state['input'+t].slice(0,-1);
+  document.getElementById('answer'+t).textContent=state['input'+t];
+}
+
+function submitAnswer(t){
+  let val=parseInt(state['input'+t]);
+  if(val===state['answer'+t]){
+    playTone(600,0.1,'triangle',0.3);
+
+    if(t==='A'){ state.scoreA++; pull++; teamA.classList.add('pull-left'); setTimeout(()=>teamA.classList.remove('pull-left'),300);}
+    else { state.scoreB++; pull--; teamB.classList.add('pull-right'); setTimeout(()=>teamB.classList.remove('pull-right'),300); }
+
+    document.getElementById('score'+t).textContent=state['score'+t];
+    updateVisual();
+    checkWin();
+  }
+  state['input'+t]='';
+  document.getElementById('answer'+t).textContent='';
+}
+
+function checkWin(){
+  if(pull>=maxPull){ alert("🏆 Team 1 Wins!"); reset(); }
+  if(pull<=-maxPull){ alert("🏆 Team 2 Wins!"); reset(); }
+}
+
+function reset(){ pull=0; updateVisual(); }
+
+/* INIT AUDIO ON FIRST CLICK */
+document.body.addEventListener("click",()=>{
+  initAudio(); initMasterGain();
+  startCrowd(); startTensionSound();
+},{once:true});
+</script>
+
+</body>
+</html>
